@@ -208,7 +208,7 @@ export default function HomePage() {
               {probs ? probs.reduce((sum, p, i) => sum + p * (i + 1), 0).toFixed(4) : "-"}
             </div>
             <div className="flex items-center justify-between">
-              <span>Sample expected value (E[X])</span>
+              <span>Empirical expected value (E[X])</span>
               {relFreq ? relFreq.reduce((sum, f, i) => sum + f * (i + 1), 0).toFixed(4) : "-"}
             </div>
             <div className="flex items-center justify-between">
@@ -224,7 +224,7 @@ export default function HomePage() {
                 : "-"}
             </div>
             <div className="flex items-center justify-between">
-              <span>Sample variance (D&#x00B2;[X])</span>
+              <span>Empirical variance (D&#x00B2;[X])</span>
               {relFreq
                 ? (
                     relFreq.reduce((sum, f, i) => sum + f * Math.pow(i + 1, 2), 0) -
