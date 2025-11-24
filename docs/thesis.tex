@@ -1,0 +1,130 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[magyar]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+\begin{document}
+
+\section{Súlyozott diszkrét valószínűségi változó}
+
+Legyen $X$ egy diszkrét valószínűségi változó, amely egy $d$ oldalú 
+dobókocka kimenetelét reprezentálja. A dobókocka oldalaihoz tartozó 
+kimeneteket az alábbi halmaz írja le:
+\[
+\{x_1, x_2, \dots, x_d\},
+\]
+ahol tipikusan $x_i = i$ ($1 \leq i \leq d$), de a levezetés általánosabb formában is érvényes.
+
+Minden oldalhoz rendelünk egy nemnegatív súlyt:
+\[
+w_1, w_2, \dots, w_d \ge 0
+\quad\text{úgy, hogy}\quad 
+\sum_{i=1}^{d} w_i > 0.
+\]
+Ezek a súlyok határozzák meg a kimenetelek relatív esélyeit.
+
+A súlyokból kapott elméleti valószínűségek:
+\[
+p_i = \frac{w_i}{\sum_{j=1}^d w_j},
+\qquad i = 1,\dots,d.
+\]
+Ez biztosítja, hogy $0 \le p_i \le 1$ és $\sum_{i=1}^{d} p_i = 1$.
+
+\section{Valószínűségi tömegfüggvény}
+
+A súlyozott dobókocka eloszlását a relatív gyakoriságfüggvény (diszkrét „sűrűségfüggvény”) írja le:
+\[
+f_X(x_i) = P(X = x_i) = p_i,
+\qquad i = 1,\dots,d.
+\]
+
+Ez a projektben az elméleti (theoretical) PMF-et jelenti, míg a szimuláció során kapott 
+relatív gyakoriságok az empirikus PMF-et adják:
+\[
+\hat{p}_i = \frac{n_i}{n}, \qquad i = 1,\dots,d,
+\]
+ahol $n$ a kísérletek száma, $n_i$ pedig annak a kísérletekben előforduló számossága, hogy $X = x_i$.
+
+\section{Eloszlásfüggvény}
+
+A diszkrét eloszlásfüggvény definíciója:
+\[
+F_X(k) = P(X \le k)
+       = \sum_{i :\, x_i \le k} f_X(x_i)
+       = \sum_{i :\, x_i \le k} p_i.
+\]
+
+Az empirikus eloszlásfüggvény (empirical CDF) definíciója:
+\[
+\widehat{F}_n(k)
+= \frac{1}{n} \sum_{j=1}^{n} \mathbf{1}_{\{X_j \le k\}},
+\]
+ahol $\mathbf{1}_{A}$ az $A$ esemény indikátorfüggvénye, azaz
+\[
+\mathbf{1}_{A} =
+\begin{cases}
+1, & \text{ha } A \text{ bekövetkezik},\\
+0, & \text{különben}.
+\end{cases}
+\]
+
+\section{Várható érték és második momentum}
+
+A valószínűségi változó várható értéke:
+\[
+E(X) 
+= \sum_{i=1}^{d} x_i\, p_i
+= \sum_{i=1}^{d} x_i\, f_X(x_i).
+\]
+
+Az empirikus várható érték (mintaátlag) a relatív gyakoriságok segítségével:
+\[
+\widehat{E}(X)
+= \sum_{i=1}^{d} x_i\, \hat{p}_i.
+\]
+
+A második momentum definíciója:
+\[
+E(X^2)
+= \sum_{i=1}^{d} x_i^2\, p_i.
+\]
+
+\section{Variancia}
+
+A variancia (szórásnégyzet) definíciója:
+\[
+D^2(X)
+= E(X^2) - \bigl(E(X)\bigr)^{2}.
+\]
+
+A szimulációból származó empirikus szórásnégyzet:
+\[
+\widehat{D^2}(X)
+= \sum_{i=1}^d x_i^2 \hat{p}_i
+  - \left( \sum_{i=1}^d x_i \hat{p}_i \right)^2.
+\]
+
+\section{Hibamérés}
+
+Az elméleti és empirikus relatív gyakoriságfüggvény különbségét az alábbi hibamértékekkel jellemezzük.
+
+\bigskip
+
+\textbf{Abszolút hiba:}
+\[
+\varepsilon_i^{(\mathrm{abs})}
+= \bigl| \hat{p}_i - p_i \bigr|.
+\]
+
+\textbf{Relatív hiba:}
+\[
+\varepsilon_i^{(\mathrm{rel})}
+= \frac{\bigl|\,\hat{p}_i - p_i\,\bigr|}{p_i},
+\qquad p_i > 0.
+\]
+
+\end{document}

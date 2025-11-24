@@ -200,7 +200,7 @@ export default function HomePage() {
             {isSimulating ? "Simulating..." : "Simulate"}
           </button>
 
-          {error && <div className="text-red-600 text-sm mt-2">Hiba: {error}</div>}
+          {error && <div className="text-red-600 text-sm mt-2">ERROR: {error}</div>}
 
           <div className="text-sm sm:text-base">
             <div className="flex items-center justify-between">
@@ -239,7 +239,7 @@ export default function HomePage() {
         </div>
 
         <div className="flex-1">
-          <WeightedDieCanvas weights={weights} />
+          <WeightedDieCanvas weights={currentWeights} />
 
           {counts && relFreq && probs && (
             <div className="mt-4">
