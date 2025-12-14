@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { simulateRolls, weightsFromDimensions } from "@/lib/die";
-import { WeightedDieCanvas } from "@/components/die";
+import { useEffect, useMemo, useState } from "react";
+import { applyBubblePhysics, clampBubbleToDie, simulateRolls, weightsFromDimensions } from "@/lib/die";
+import { WeightedDieCanvas } from "@/components/die_model";
+import { BubbleConfig, DEFAULT_BUBBLE } from "@/types/bubble";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList, Line, LineChart } from "recharts";
 import {
   ChartContainer,
@@ -17,20 +18,37 @@ type MODE = "weights" | "dimensions";
 
 const INITIAL_WEIGHTS = [1, 1, 1, 1, 1, 1];
 const INITIAL_DIMENSIONS = { lx: 1, ly: 1, lz: 1 };
+const DIMENSIONS_EXPONENT = 1;
 
 export default function HomePage() {
   const [mode, setMode] = useState<MODE>("weights");
   const [weights, setWeights] = useState<number[]>(INITIAL_WEIGHTS);
   const [fixedWeights, setFixedWeights] = useState<number[]>(INITIAL_WEIGHTS);
   const [dimensions, setDimensions] = useState<typeof INITIAL_DIMENSIONS>(INITIAL_DIMENSIONS);
+  const [bubble, setBubble] = useState<BubbleConfig>(DEFAULT_BUBBLE);
   const [nRolls, setNRolls] = useState(1000);
   const [counts, setCounts] = useState<number[] | null>(null);
   const [relFreq, setRelFreq] = useState<number[] | null>(null);
   const [probs, setProbs] = useState<number[] | null>(null);
+  const [runningMean, setRunningMean] = useState<number[] | null>(null); // NEW
   const [error, setError] = useState<string | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
 
-  const currentWeights = mode === "weights" ? weights : weightsFromDimensions(dimensions, 1);
+  const dieDims = mode === "dimensions" ? dimensions : INITIAL_DIMENSIONS;
+  const halfDims = useMemo(
+    () => ({ x: dieDims.lx / 2, y: dieDims.ly / 2, z: dieDims.lz / 2 }),
+    [dieDims.lx, dieDims.ly, dieDims.lz]
+  );
+
+  const baseWeights = mode === "weights" ? weights : weightsFromDimensions(dimensions, DIMENSIONS_EXPONENT);
+
+  useEffect(() => {
+    setBubble((b) =>
+      clampBubbleToDie(b, { lx: dieDims.lx, ly: dieDims.ly, lz: dieDims.lz })
+    );
+  }, [dieDims.lx, dieDims.ly, dieDims.lz]);
+
+  const currentWeights = applyBubblePhysics(baseWeights, bubble, undefined, dieDims);
 
   const probData = useMemo(
     () =>
@@ -69,6 +87,27 @@ export default function HomePage() {
     empiricalCdf: { label: "F(empirical)", color: "hsl(14, 88%, 62%)" },
   };
 
+  // NEW: running mean chart data (LLN convergence)
+  const meanData = useMemo(() => {
+    if (!runningMean) return [];
+    // Prefer something not too dense; you can tune this later without changing simulateRolls().
+    const sampleStep = Math.max(1, Math.floor(nRolls / Math.max(1, runningMean.length)));
+    return runningMean.map((m, idx) => ({
+      n: (idx + 1) * sampleStep,
+      mean: Number(m.toFixed(4)),
+    }));
+  }, [runningMean, nRolls]);
+
+  const meanChartConfig = {
+    mean: { label: "Empirical mean", color: "hsl(14, 88%, 62%)" },
+    theo: { label: "E[X]", color: "hsl(220, 90%, 56%)" },
+  };
+
+  const theoMean = useMemo(() => {
+    if (!probs) return null;
+    return probs.reduce((sum, p, i) => sum + p * (i + 1), 0);
+  }, [probs]);
+
   const handleWeightChange = (index: number, value: number) => {
     setWeights(prev => {
       const newWeights = [...prev];
@@ -84,15 +123,36 @@ export default function HomePage() {
     }));
   };
 
-  const handleSimulate = () => {
+  const handleBubbleSizeChange = (value: number) => {
+    setBubble((p) => clampBubbleToDie({ ...p, radius: value }, dieDims));
+  };
+
+  const handleBubbleOffsetChange = (axis: keyof typeof bubble.offset, value: number) => {
+    setBubble((p) =>
+      clampBubbleToDie(
+        {
+          ...p,
+          offset: {
+            ...p.offset,
+            [axis]: value,
+          },
+        },
+        dieDims
+      )
+    );
+  };
+
+  const handleSimulate = async () => {
     try {
       setError(null);
       setIsSimulating(true);
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       setFixedWeights(currentWeights);
-      const { counts, relFreq, probs } = simulateRolls(currentWeights, nRolls);
+      const { counts, relFreq, probs, runningMean } = simulateRolls(currentWeights, nRolls); // UPDATED
       setCounts(counts);
       setRelFreq(relFreq);
       setProbs(probs);
+      setRunningMean(runningMean); // NEW
     } catch {
       setError("An unexpected error occurred during the simulation.");
     } finally {
@@ -188,10 +248,57 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="text-[11px] text-center text-slate-500">
-                Weights are proportional to the landing face area (raised to an exponent to accentuate bias).
+                Weights are proportional to the landing face area (exponent {DIMENSIONS_EXPONENT}).
               </p>
             </div>
           )}
+
+          <div className="flex flex-col gap-4 border rounded-lg p-3">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold uppercase text-sm">Enable Air Bubble</span>
+              <input
+                type="checkbox"
+                checked={bubble.enabled}
+                onChange={e => setBubble(p => clampBubbleToDie({ ...p, enabled: e.target.checked }, dieDims))}
+                className="size-5 accent-blue-400"
+              />
+            </div>
+
+            {bubble.enabled && (
+              <>
+                <div className="flex flex-col gap-2">
+                  <div className="text-xs uppercase font-semibold text-slate-400">Radius</div>
+                  <input
+                    type="number"
+                    step={0.01}
+                    min={0}
+                    max={Math.min(halfDims.x, halfDims.y, halfDims.z)}
+                    value={bubble.radius}
+                    onChange={e => handleBubbleSizeChange(Number(e.target.value))}
+                    className="border px-2 py-1 rounded w-full"
+                  />
+                  <div className="text-xs uppercase font-semibold text-slate-400">Position Offset (Relative to Center)</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["x", "y", "z"] as const).map(axis => (
+                      <label key={axis} className="flex flex-col text-xs">
+                        <span className="uppercase mb-1">{axis}</span>
+                        <input
+                          type="number"
+                          step={0.01}
+                          min={-halfDims[axis]}
+                          max={halfDims[axis]}
+                          value={bubble.offset[axis]}
+                          onChange={e => handleBubbleOffsetChange(axis, Number(e.target.value))}
+                          className="border px-2 py-1 rounded"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
           <button
             onClick={handleSimulate}
             disabled={isSimulating}
@@ -239,7 +346,7 @@ export default function HomePage() {
         </div>
 
         <div className="flex-1">
-          <WeightedDieCanvas weights={currentWeights} />
+          <WeightedDieCanvas weights={currentWeights} bubble={bubble} dimensions={dieDims} />
 
           {counts && relFreq && probs && (
             <div className="mt-4">
@@ -265,6 +372,42 @@ export default function HomePage() {
                   </ChartContainer>
                 </CardContent>
               </Card>
+
+              {runningMean && theoMean !== null && (
+                <Card className="mb-4">
+                  <CardHeader>
+                    <CardTitle>Convergence of the Empirical Mean (LLN)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer config={meanChartConfig} className="h-72 w-full mb-4">
+                      <LineChart data={meanData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="n" tickFormatter={(v) => `${v}`} />
+                        <YAxis tickFormatter={(v) => v.toFixed(2)} />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <ChartLegend content={<ChartLegendContent />} />
+                        <Line
+                          type="monotone"
+                          dataKey={() => theoMean}
+                          stroke="var(--color-theo)"
+                          strokeWidth={2}
+                          strokeDasharray="4 4"
+                          dot={false}
+                          isAnimationActive={false}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="mean"
+                          stroke="var(--color-mean)"
+                          strokeWidth={2}
+                          dot={false}
+                          isAnimationActive={false}
+                        />
+                      </LineChart>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card className="mb-4">
                 <CardHeader>
