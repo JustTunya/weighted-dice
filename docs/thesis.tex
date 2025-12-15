@@ -7,124 +7,248 @@
 \usepackage{geometry}
 \geometry{margin=2.5cm}
 
+\newtheorem{tetel}{Tétel}
+
 \begin{document}
 
 \section{Súlyozott diszkrét valószínűségi változó}
 
-Legyen $X$ egy diszkrét valószínűségi változó, amely egy $d$ oldalú 
-dobókocka kimenetelét reprezentálja. A dobókocka oldalaihoz tartozó 
-kimeneteket az alábbi halmaz írja le:
+Legyen $X$ egy diszkrét valószínűségi változó, amely egy $d$ oldalú dobókocka
+egy dobásának kimenetelét reprezentálja.
+A lehetséges értékei:
 \[
-\{x_1, x_2, \dots, x_d\},
+\{x_1,x_2,\dots,x_d\},
 \]
-ahol tipikusan $x_i = i$ ($1 \leq i \leq d$), de a levezetés általánosabb formában is érvényes.
+ahol általában $x_i=i$ $(i=1,\dots,d)$.
 
-Minden oldalhoz rendelünk egy nemnegatív súlyt:
+A klasszikus, szabályos dobókocka esetén minden kimenetel azonos
+valószínűségű. A továbbiakban ettől eltérő, \emph{súlyozott} esetet vizsgálunk.
+
+Minden $x_i$ értékhez rendelünk egy nemnegatív súlyt:
 \[
-w_1, w_2, \dots, w_d \ge 0
-\quad\text{úgy, hogy}\quad 
+w_1,w_2,\dots,w_d \ge 0,
+\qquad
 \sum_{i=1}^{d} w_i > 0.
 \]
-Ezek a súlyok határozzák meg a kimenetelek relatív esélyeit.
 
-A súlyokból kapott elméleti valószínűségek:
+A súlyokból a valószínűségeket normalizálással definiáljuk:
 \[
-p_i = \frac{w_i}{\sum_{j=1}^d w_j},
-\qquad i = 1,\dots,d.
-\]
-Ez biztosítja, hogy $0 \le p_i \le 1$ és $\sum_{i=1}^{d} p_i = 1$.
-
-\section{Valószínűségi tömegfüggvény}
-
-A súlyozott dobókocka eloszlását a relatív gyakoriságfüggvény (diszkrét „sűrűségfüggvény”) írja le:
-\[
-f_X(x_i) = P(X = x_i) = p_i,
-\qquad i = 1,\dots,d.
+p_i = \frac{w_i}{\sum_{j=1}^{d} w_j},
+\qquad i=1,\dots,d.
 \]
 
-Ez a projektben az elméleti (theoretical) PMF-et jelenti, míg a szimuláció során kapott 
-relatív gyakoriságok az empirikus PMF-et adják:
+Ekkor $0 \le p_i \le 1$ és
 \[
-\hat{p}_i = \frac{n_i}{n}, \qquad i = 1,\dots,d,
+\sum_{i=1}^{d} p_i = 1,
 \]
-ahol $n$ a kísérletek száma, $n_i$ pedig annak a kísérletekben előforduló számossága, hogy $X = x_i$.
+tehát $\{p_i\}$ valóban egy diszkrét eloszlás paraméterei.
 
-\section{Eloszlásfüggvény}
+\section{Súlyok meghatározása geometriai paraméterek alapján}
 
-A diszkrét eloszlásfüggvény definíciója:
+A továbbiakban a $d=6$ esetet tekintjük.
+Feltesszük, hogy a dobókocka nem feltétlenül szabályos kocka, hanem egy
+téglatest alakú test, amelynek élei:
 \[
-F_X(k) = P(X \le k)
-       = \sum_{i :\, x_i \le k} f_X(x_i)
-       = \sum_{i :\, x_i \le k} p_i.
+l_x>0, \qquad l_y>0, \qquad l_z>0.
 \]
 
-Az empirikus eloszlásfüggvény (empirical CDF) definíciója:
+A dobókockának három pár egymással szemközti lapja van.
+Ezek felületei:
 \[
-\widehat{F}_n(k)
-= \frac{1}{n} \sum_{j=1}^{n} \mathbf{1}_{\{X_j \le k\}},
+A_{xz} = l_x l_z \quad (1.\text{ és }6.\text{ lap}),
 \]
-ahol $\mathbf{1}_{A}$ az $A$ esemény indikátorfüggvénye, azaz
 \[
-\mathbf{1}_{A} =
-\begin{cases}
-1, & \text{ha } A \text{ bekövetkezik},\\
-0, & \text{különben}.
-\end{cases}
+A_{yz} = l_y l_z \quad (2.\text{ és }5.\text{ lap}),
 \]
+\[
+A_{xy} = l_x l_y \quad (3.\text{ és }4.\text{ lap}).
+\]
+
+\medskip
+A geometriai különbségek hatását a dobások kimenetelére
+valószínűségi módon modellezzük.
+A modell alapfeltevése szerint a nagyobb felületű lapok
+nagyobb súlyt kapnak.
+
+Legyen $\gamma>0$ egy alakparaméter.
+A súlyokat az alábbi módon definiáljuk:
+\[
+w_1 = w_6 = (A_{xz})^{\gamma}, \qquad
+w_2 = w_5 = (A_{yz})^{\gamma}, \qquad
+w_3 = w_4 = (A_{xy})^{\gamma}.
+\]
+
+A hozzájuk tartozó valószínűségeket ismét normalizálással kapjuk:
+\[
+p_i = \frac{w_i}{\sum_{j=1}^{6} w_j}, \qquad i=1,\dots,6.
+\]
+
+\medskip
+Megjegyzés:
+\begin{itemize}
+  \item $\gamma=1$ esetén a súlyok arányosak a felületekkel.
+  \item $\gamma>1$ esetén a különbségek felerősödnek.
+  \item $0<\gamma<1$ esetén a különbségek mérséklődnek.
+\end{itemize}
+
+\section{Belső üreg hatása – valószínűségi modell}
+
+Tegyük fel, hogy a dobókocka anyaga homogén, de belsejében egy gömb alakú
+üreg található.
+Ez az üreg a tömegközéppontot eltolja, ami a dobások eloszlását
+torzíthatja.
+
+Legyen az üreg sugara $r \ge 0$, középpontjának eltolása pedig
+$\mathbf b = (b_x,b_y,b_z)$.
+
+A tömegközéppont eltolódását a következő vektorral modellezzük:
+\[
+\mathbf\Delta
+=
+-\frac{V_{\mathrm{bub}}}{V_{\mathrm{solid}}}\,\mathbf b.
+\]
+
+A modellben a súlyokat egy korrekciós tényezővel módosítjuk:
+\[
+\widetilde w_i
+=
+w_i \exp\!\bigl(-k \langle \mathbf\Delta, \mathbf n_i\rangle\bigr),
+\qquad i=1,\dots,6,
+\]
+ahol $\mathbf n_i$ az $i$-edik lap kifelé mutató egységnormálvektora,
+$k>0$ pedig egy hangolható paraméter.
+
+Az új elméleti valószínűségek:
+\[
+\widetilde p_i
+=
+\frac{\widetilde w_i}{\sum_{j=1}^{6} \widetilde w_j}.
+\]
+
+Ha nincs üreg ($r=0$), akkor visszakapjuk az eredeti modellt.
+
+\section{Relatív gyakoriságfüggvény (PMF)}
+
+A súlyozott dobókocka eloszlását a relatív gyakoriságfüggvény írja le:
+\[
+f_X(x_i) = P(X=x_i) = p_i,
+\qquad i=1,\dots,d.
+\]
+
+\section{Mintavétel és empirikus eloszlás}
+
+Végezzünk $n\ge1$ darab független dobást:
+\[
+X_1,X_2,\dots,X_n.
+\]
+
+Jelölje
+\[
+n_i = \sum_{j=1}^{n} \mathbf 1_{\{X_j=x_i\}}
+\]
+az $x_i$ érték előfordulásainak számát.
+
+Az empirikus relatív gyakoriság:
+\[
+\hat p_i = \frac{n_i}{n},
+\qquad i=1,\dots,d.
+\]
+
+\section{Eloszlásfüggvény (CDF)}
+
+Az elméleti eloszlásfüggvény:
+\[
+F_X(k) = P(X\le k) = \sum_{i:\,x_i\le k} p_i.
+\]
+
+Az empirikus eloszlásfüggvény:
+\[
+\widehat F_n(k)
+=
+\frac{1}{n}\sum_{j=1}^{n} \mathbf 1_{\{X_j\le k\}}.
+\]
+
+\section{Inversion by Sequential Search}
+
+A nemegyenletes diszkrét mintavételezés az inverziós módszer
+szekvenciális kereséssel történik.
+
+Definiáljuk a kumulatív összegeket:
+\[
+F_i = \sum_{k=1}^{i} p_k,
+\qquad i=1,\dots,d,
+\]
+ahol $F_d=1$.
+
+Generáljunk egy $U\sim U(0,1)$ egyenletes eloszlású változót, majd:
+\[
+I = \min\{i:\, F_i \ge U\},
+\qquad X=x_I.
+\]
+
+Ez biztosítja, hogy $P(X=x_i)=p_i$ teljesüljön.
 
 \section{Várható érték és második momentum}
 
-A valószínűségi változó várható értéke:
+Az elméleti várható érték:
 \[
-E(X) 
-= \sum_{i=1}^{d} x_i\, p_i
-= \sum_{i=1}^{d} x_i\, f_X(x_i).
+E(X) = \sum_{i=1}^{d} x_i p_i.
 \]
 
-Az empirikus várható érték (mintaátlag) a relatív gyakoriságok segítségével:
+A mintabeli várható érték:
 \[
-\widehat{E}(X)
-= \sum_{i=1}^{d} x_i\, \hat{p}_i.
+\overline X_n = \frac{1}{n}\sum_{j=1}^{n} X_j
+= \sum_{i=1}^{d} x_i \hat p_i.
 \]
 
-A második momentum definíciója:
+A második nyers momentum:
 \[
-E(X^2)
-= \sum_{i=1}^{d} x_i^2\, p_i.
+E(X^2)=\sum_{i=1}^{d} x_i^2 p_i,
+\qquad
+\widehat E(X^2)=\sum_{i=1}^{d} x_i^2 \hat p_i.
 \]
 
 \section{Variancia}
 
-A variancia (szórásnégyzet) definíciója:
+Az elméleti variancia:
 \[
-D^2(X)
-= E(X^2) - \bigl(E(X)\bigr)^{2}.
+D^2(X) = E(X^2) - (E(X))^2.
 \]
 
-A szimulációból származó empirikus szórásnégyzet:
+Az empirikus becslés:
 \[
 \widehat{D^2}(X)
-= \sum_{i=1}^d x_i^2 \hat{p}_i
-  - \left( \sum_{i=1}^d x_i \hat{p}_i \right)^2.
+=
+\sum_{i=1}^{d} x_i^2 \hat p_i
+-
+\left(\sum_{i=1}^{d} x_i \hat p_i\right)^2.
 \]
+
+\section{Az empirikus átlag konvergenciája}
+
+\begin{tetel}[Gyenge nagy számok törvénye]
+Ha $X_1,X_2,\dots$ független, azonos eloszlású változók és $E(X_1)$ létezik, akkor
+\[
+\overline X_n \xrightarrow[n\to\infty]{} E(X_1)
+\]
+valószínűségben.
+\end{tetel}
 
 \section{Hibamérés}
 
-Az elméleti és empirikus relatív gyakoriságfüggvény különbségét az alábbi hibamértékekkel jellemezzük.
-
-\bigskip
+Az empirikus és elméleti valószínűségek eltérését mérhetjük:
 
 \textbf{Abszolút hiba:}
 \[
-\varepsilon_i^{(\mathrm{abs})}
-= \bigl| \hat{p}_i - p_i \bigr|.
+\varepsilon_i^{(\mathrm{abs})} = |\hat p_i - p_i|.
 \]
 
 \textbf{Relatív hiba:}
 \[
 \varepsilon_i^{(\mathrm{rel})}
-= \frac{\bigl|\,\hat{p}_i - p_i\,\bigr|}{p_i},
-\qquad p_i > 0.
+=
+\frac{|\hat p_i - p_i|}{p_i},
+\qquad p_i>0.
 \]
 
 \end{document}
