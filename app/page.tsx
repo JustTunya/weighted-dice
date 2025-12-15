@@ -113,7 +113,7 @@ export default function HomePage() {
   }, [runningMean, nRolls]);
 
   // -----------------------------
-  // Chart configs (unchanged)
+  // Chart configs
   // -----------------------------
   const probConfig = {
     theoretical: { label: "P(theoretical)", color: "hsl(220, 90%, 56%)" },
@@ -195,7 +195,7 @@ export default function HomePage() {
   };
 
   // -----------------------------
-  // Summary values (kept inline, but compact)
+  // Summary values
   // -----------------------------
   const theoreticalEV = probs
     ? probs.reduce((sum, p, i) => sum + p * (i + 1), 0)
