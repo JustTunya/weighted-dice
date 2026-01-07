@@ -600,11 +600,11 @@ function SummaryPanel({
           <div className="h-px bg-slate-200 my-2" />
           <div className="flex items-center justify-between font-medium">
              <span>χ² Statistic</span>
-             <span>{chiStats.statistic.toFixed(3)}</span>
+             <span>{chiStats.statistic.toFixed(4)}</span>
           </div>
-           <div className="flex items-center justify-between text-slate-600">
-             <span>goodness-of-fit</span> {/*p-value*/}
-             <span className={chiStats.pValue < 0.05 ? "text-red-600 font-bold" : "text-green-600 font-bold"}>
+           <div className="flex items-center justify-between font-light text-slate-500">
+             <span>Goodness-of-fit</span> {/*p-value*/}
+             <span className={chiStats.pValue < 0.05 ? "text-red-600" : "text-green-600"}>
                {chiStats.pValue.toFixed(4)}
              </span>
           </div>
