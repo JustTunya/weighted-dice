@@ -9,6 +9,13 @@ import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartToo
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WeightedDieCanvas } from "@/components/die_model";
 import { BubbleConfig, DEFAULT_BUBBLE } from "@/types/bubble";
+import {
+  calculateChiSquare,
+  calculateMeanCI,
+  calculateStdDevCI,
+  type ChiSquareResult as ChiSquareResultType,
+  type ConfidenceInterval as ConfidenceIntervalType,
+} from "@/lib/stats";
 
 type MODE = "weights" | "dimensions";
 
@@ -95,8 +102,24 @@ export default function HomePage() {
     });
   }, [probs, relFreq]);
 
+  const cltData = useMemo(() => {
+    const means: number[] = [];
+    
+    for (let i = 0; i < nRolls; i++) {
+      const { counts } = simulateRolls(currentWeights, nRolls, nRolls);
+      let s = 0; let total = 0;
+      counts.forEach((c, idx) => {
+        s += c * (idx + 1);
+        total += c;
+      });
+      means.push(s / total);
+    }
+    
+    return means;
+  }, [currentWeights, nRolls]);
+
   const theoMean = useMemo(() => {
-    if (!probs) return null;
+    if (!probs) return 0;
     return probs.reduce((sum, p, i) => sum + p * (i + 1), 0);
   }, [probs]);
 
@@ -128,6 +151,10 @@ export default function HomePage() {
   const meanChartConfig = {
     mean: { label: "Empirical mean", color: "hsl(14, 88%, 62%)" },
     theo: { label: "E[X]", color: "hsl(220, 90%, 56%)" },
+  };
+
+  const cltChartConfig = {
+    count: { label: "Frequency", color: "hsl(220, 90%, 56%)" },
   };
 
   // -----------------------------
@@ -215,6 +242,20 @@ export default function HomePage() {
       Math.pow(relFreq.reduce((sum, f, i) => sum + f * (i + 1), 0), 2)
     : null;
 
+  const chiSquaredStats = useMemo(() => {
+    if (!counts || !probs) return null;
+    return calculateChiSquare(counts, probs, nRolls);
+  }, [counts, probs, nRolls]);
+
+  const statsCIs = useMemo(() => {
+    if (empiricalEV === null || empiricalVar === null) return null;
+    const stdDev = Math.sqrt(empiricalVar);
+    return {
+      mean: calculateMeanCI(empiricalEV, stdDev, nRolls),
+      stdDev: calculateStdDevCI(stdDev, nRolls),
+    };
+  }, [empiricalEV, empiricalVar, nRolls]);
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-start p-8 gap-8">
       <h1 className="text-2xl font-bold mb-2">Weighted Die Simulator</h1>
@@ -261,6 +302,8 @@ export default function HomePage() {
             empiricalEV={empiricalEV}
             theoreticalVar={theoreticalVar}
             empiricalVar={empiricalVar}
+            chiStats={chiSquaredStats}
+            cis={statsCIs}
           />
         </div>
 
@@ -269,17 +312,10 @@ export default function HomePage() {
 
           {counts && relFreq && probs && (
             <div className="mt-4">
-              <ProbabilitiesCard probData={probData} probConfig={probConfig} />
-
-              {runningMean && theoMean !== null && (
-                <MeanConvergenceCard
-                  meanData={meanData}
-                  meanChartConfig={meanChartConfig}
-                  theoMean={theoMean}
-                />
-              )}
-
-              <CdfCard cdfData={cdfData} cdfChartConfig={cdfChartConfig} />
+              <ProbCard probData={probData} probConfig={probConfig} />
+              <MeanConvCard meanConvData={meanData} theoMeanConv={theoMean} meanConvChartConfig={meanChartConfig} />
+              <CdfCard cdfData={cdfData} cdfChartConfig={cdfChartConfig} />        
+              <CltCard cltData={cltData} cltChartConfig={cltChartConfig} />
 
               <ResultsTable
                 fixedWeights={fixedWeights}
@@ -528,37 +564,69 @@ function ErrorBanner({ message }: { message: string }) {
   return <div className="text-red-600 text-sm mt-2">ERROR: {message}</div>;
 }
 
-function SummaryRow({ label, value }: { label: string; value: number | null }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span>{label}</span>
-      <span>{value === null ? "-" : value.toFixed(4)}</span>
-    </div>
-  );
-}
 
 function SummaryPanel({
   theoreticalEV,
   empiricalEV,
   theoreticalVar,
   empiricalVar,
+  chiStats,
+  cis,
 }: {
   theoreticalEV: number | null;
   empiricalEV: number | null;
   theoreticalVar: number | null;
   empiricalVar: number | null;
+  chiStats: ChiSquareResultType | null;
+  cis: { mean: ConfidenceIntervalType; stdDev: ConfidenceIntervalType } | null;
 }) {
   return (
-    <div className="text-sm sm:text-base">
-      <SummaryRow label="Theoretical expected value (E[X])" value={theoreticalEV} />
-      <SummaryRow label="Empirical expected value (E[X])" value={empiricalEV} />
-      <SummaryRow label="Theoretical variance (D&#x00B2;[X])" value={theoreticalVar} />
-      <SummaryRow label="Empirical variance (D&#x00B2;[X])" value={empiricalVar} />
+    <div className="text-sm sm:text-base flex flex-col gap-1">
+      <SummaryRow label="Theoretical E[X]" value={theoreticalEV} />
+      <SummaryRow 
+        label="Empirical mean" 
+        value={empiricalEV} 
+        subValue={cis ? `(95% CI: [${cis.mean.min.toFixed(3)}, ${cis.mean.max.toFixed(3)}])` : undefined}
+      />
+      <SummaryRow label="Theoretical Var(X)" value={theoreticalVar} />
+      <SummaryRow 
+        label="Empirical Var(X)" 
+        value={empiricalVar} 
+        subValue={cis && empiricalVar ? `(SD: ${Math.sqrt(empiricalVar).toFixed(3)} ± ${((cis.stdDev.max - cis.stdDev.min)/2).toFixed(3)})` : undefined}
+      />
+      
+      {chiStats && (
+        <>
+          <div className="h-px bg-slate-200 my-2" />
+          <div className="flex items-center justify-between font-medium">
+             <span>χ² Statistic</span>
+             <span>{chiStats.statistic.toFixed(3)}</span>
+          </div>
+           <div className="flex items-center justify-between text-slate-600">
+             <span>goodness-of-fit</span> {/*p-value*/}
+             <span className={chiStats.pValue < 0.05 ? "text-red-600 font-bold" : "text-green-600 font-bold"}>
+               {chiStats.pValue.toFixed(4)}
+             </span>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-function ProbabilitiesCard({
+function SummaryRow({ label, value, subValue }: { label: string; value: number | null, subValue?: string }) {
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between">
+        <span>{label}</span>
+        <span className="font-medium">{value === null ? "-" : value.toFixed(4)}</span>
+      </div>
+      {subValue && <div className="text-xs text-right text-slate-400">{subValue}</div>}
+    </div>
+  );
+}
+
+function ProbCard({
   probData,
   probConfig,
 }: {
@@ -608,14 +676,14 @@ function ProbabilitiesCard({
   );
 }
 
-function MeanConvergenceCard({
-  meanData,
-  meanChartConfig,
-  theoMean,
+function MeanConvCard({
+  meanConvData: meanData,
+  meanConvChartConfig: meanChartConfig,
+  theoMeanConv: theoMean,
 }: {
-  meanData: { n: number; mean: number }[];
-  meanChartConfig: any;
-  theoMean: number;
+  meanConvData: { n: number; mean: number }[];
+  meanConvChartConfig: any;
+  theoMeanConv: number;
 }) {
   return (
     <Card className="mb-4">
@@ -714,7 +782,7 @@ function ResultsTable({
   probs: number[];
 }) {
   return (
-    <table className="border-collapse border rounded-xl w-full text-xs sm:text-sm">
+    <table className="border-collapse border rounded-xl w-full text-xs sm:text-sm mt-4">
       <thead>
         <tr>
           <th className="border sm:px-2 py-1">Face</th>
@@ -747,5 +815,63 @@ function ResultsTable({
         ))}
       </tbody>
     </table>
+  );
+}
+
+function CltCard({
+  cltData: data,
+  cltChartConfig: config,
+}: {
+  cltData: number[];
+  cltChartConfig: any;
+}) {
+  const bins = useMemo(() => {
+    if(!data.length) return [];
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const range = max - min;
+    const binCount = 20;
+    const step = range / binCount || 0.1;
+    
+    const hist = Array.from({ length: binCount + 1 }, (_, i) => ({
+      rangeStart: min + i * step,
+      rangeEnd: min + (i + 1) * step,
+      mid: min + i * step + step / 2,
+      count: 0
+    }));
+
+    data.forEach(val => {
+      const idx = Math.min(Math.floor((val - min) / step), binCount);
+      if(hist[idx]) hist[idx].count++;
+    });
+
+    return hist;
+  }, [data]);
+
+  return (
+    <Card className="mt-4">
+      <CardHeader>
+        <CardTitle>CLT: Distribution of Sample Means</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ChartContainer config={config} className="h-64 w-full mb-4">
+          <BarChart data={bins} barCategoryGap={1}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="mid" 
+              tickFormatter={(v) => v.toFixed(2)}
+              // label={{ value: 'Sample Mean', position: 'insideBottom', offset: -5 }} 
+            />
+            <YAxis allowDecimals={false} />
+            <ChartTooltip content={<ChartTooltipContent />} />
+             <Bar
+              dataKey="count"
+              fill="var(--color-count)"
+              radius={[2, 2, 0, 0]}
+            />
+          </BarChart>
+        </ChartContainer>
+      </CardContent>
+    </Card>
   );
 }
