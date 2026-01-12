@@ -586,13 +586,17 @@ function SummaryPanel({
       <SummaryRow 
         label="Empirical mean" 
         value={empiricalEV} 
-        subValue={cis ? `(95% CI: [${cis.mean.min.toFixed(3)}, ${cis.mean.max.toFixed(3)}])` : undefined}
+        subValue={cis ? `(95% CI: [${cis.mean.min.toFixed(4)}, ${cis.mean.max.toFixed(4)}])` : undefined}
       />
-      <SummaryRow label="Theoretical Var(X)" value={theoreticalVar} />
+      <SummaryRow label="Theoretical D²(X)" value={theoreticalVar} />
       <SummaryRow 
-        label="Empirical Var(X)" 
+        label="Empirical D²(X)" 
         value={empiricalVar} 
-        subValue={cis && empiricalVar ? `(SD: ${Math.sqrt(empiricalVar).toFixed(3)} ± ${((cis.stdDev.max - cis.stdDev.min)/2).toFixed(3)})` : undefined}
+      />
+      <SummaryRow label="Theoretical D(X)" value={theoreticalVar !== null ? Math.sqrt(theoreticalVar) : null} />
+      <SummaryRow 
+        label="Empirical D(X)" 
+        value={empiricalVar !== null ? Math.sqrt(empiricalVar) : null} 
       />
       
       {chiStats && (
