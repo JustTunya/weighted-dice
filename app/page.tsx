@@ -584,18 +584,18 @@ function SummaryPanel({
     <div className="text-sm sm:text-base flex flex-col gap-1">
       <SummaryRow label="Theoretical E[X]" value={theoreticalEV} />
       <SummaryRow 
-        label="Empirical mean" 
+        label="Empirical E[X]" 
         value={empiricalEV} 
         subValue={cis ? `(95% CI: [${cis.mean.min.toFixed(4)}, ${cis.mean.max.toFixed(4)}])` : undefined}
       />
-      <SummaryRow label="Theoretical D²(X)" value={theoreticalVar} />
+      <SummaryRow label="Theoretical D²[X]" value={theoreticalVar} />
       <SummaryRow 
-        label="Empirical D²(X)" 
+        label="Empirical D²[X]" 
         value={empiricalVar} 
       />
-      <SummaryRow label="Theoretical D(X)" value={theoreticalVar !== null ? Math.sqrt(theoreticalVar) : null} />
+      <SummaryRow label="Theoretical D[X]" value={theoreticalVar !== null ? Math.sqrt(theoreticalVar) : null} />
       <SummaryRow 
-        label="Empirical D(X)" 
+        label="Empirical D[X]" 
         value={empiricalVar !== null ? Math.sqrt(empiricalVar) : null} 
       />
       

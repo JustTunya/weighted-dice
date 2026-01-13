@@ -224,8 +224,21 @@ Az empirikus becslés:
 \left(\sum_{i=1}^{d} x_i \hat p_i\right)^2.
 \]
 
-\section{Az empirikus átlag konvergenciája}
+\section{Konfidencia intervallumok}
 
+A szimuláció során a becsült paraméterek pontosságát 95\%-os konfidencia intervallumokkal (CI) jellemezzük.
+
+\subsection{Várható érték konfidencia intervalluma}
+Mivel a populáció szórása ($\sigma$) ismeretlen, de a mintaelemszám ($n$) nagy, az empirikus szórással ($\hat{\sigma} = \sqrt{\widehat{D^2}(X)}$) becsüljük. A 95\%-os intervallum a $z=1.96$ kvantilis használatával:
+\[
+CI_{\mu} = \left[ \overline{X}_n - 1.96 \cdot \frac{\hat{\sigma}}{\sqrt{n}}, \quad \overline{X}_n + 1.96 \cdot \frac{\hat{\sigma}}{\sqrt{n}} \right].
+\]
+
+\section{Aszimptotikus viselkedés}
+
+A szimuláció két alapvető limit-tételt demonstrál.
+
+\subsection{Nagy számok törvénye}
 \begin{tetel}[Gyenge nagy számok törvénye]
 Ha $X_1,X_2,\dots$ független, azonos eloszlású változók és $E(X_1)$ létezik, akkor
 \[
@@ -233,6 +246,14 @@ Ha $X_1,X_2,\dots$ független, azonos eloszlású változók és $E(X_1)$ létez
 \]
 valószínűségben.
 \end{tetel}
+A szoftver valós időben ábrázolja $\overline X_n$ alakulását $n$ függvényében, bemutatva a konvergenciát az elméleti várható értékhez.
+
+\subsection{Centrális határeloszlás tétel (CLT)}
+A tétel kimondja, hogy független, azonos eloszlású valószínűségi változók összege (és átlaga) határértékben normális eloszlást követ.
+\[
+\frac{\overline{X}_n - \mu}{\sigma / \sqrt{n}} \xrightarrow{d} \mathcal{N}(0,1).
+\]
+A projekt hisztogramon ábrázolja a sokszor ismételt kísérletek mintaátlagainak eloszlását, amely $n$ növelésével haranggörbe alakot vesz fel.
 
 \section{Hibamérés}
 
@@ -250,5 +271,20 @@ Az empirikus és elméleti valószínűségek eltérését mérhetjük:
 \frac{|\hat p_i - p_i|}{p_i},
 \qquad p_i>0.
 \]
+
+\section{Illeszkedésvizsgálat (Chi-négyzet próba)}
+
+Annak eldöntésére, hogy a kockadobások megfigyelt gyakoriságai ($n_i$) szignifikánsan eltérnek-e az elméleti valószínűségektől ($p_i$), a Pearson-féle $\chi^2$-próbát alkalmazzuk.
+
+A próbastatisztika:
+\[
+\chi^2 = \sum_{i=1}^{d} \frac{(n_i - E_i)^2}{E_i} = \sum_{i=1}^{d} \frac{(n_i - n \cdot p_i)^2}{n \cdot p_i}.
+\]
+Ez a statisztika aszimptotikusan $\chi^2$-eloszlást követ $d-1 = 5$ szabadsági fokkal.
+A szimuláció kiszámolja a $p$-értéket (p-value):
+\[
+p\text{-value} = P(\chi^2_{d-1} \ge \chi^2_{\text{calc}}).
+\]
+Ha $p < 0.05$, a nullhipotézist (miszerint a kocka az elméleti súlyoknak megfelelően viselkedik) 95\%-os szignifikancia szinten elvetjük.
 
 \end{document}
